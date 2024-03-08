@@ -1,0 +1,748 @@
+---
+title: "index"
+author: "zrseah"
+date: "2024-03-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Business Task 
+
+To **analyze** the **fitness data** from **smart devices** to uncover emerging **trends** and provide **strategic recommendations**. These insights will be utilized to **enhance Bellabeat's Application**, fostering new opportunities for **growth** and **advancement**. 
+
+
+
+## Limitations 
+The limitations are: 
+
+- Limited number of participants, consisting of a **small sample size** of 33 individuals 
+- Data that is **no longer current**. originating from the year 2016. 
+- **Insufficient** representation of participant **demographics**, including factors such as gender, age, lifestyle, occupation, and others. 
+- **Limited** variety of **physiological metrics** for tracking.  
+
+
+
+## Load Packages 
+
+```{r, message=FALSE, echo=TRUE, warning=FALSE}
+library ('tidyverse')
+library ('dplyr')
+library ('ggplot2')
+library ('janitor')
+library('parsedate')
+library('viridis')
+```
+
+
+
+## Import Data 
+
+```{r, message=FALSE, echo=TRUE}
+dailyactivity <- read.csv('C:/Users/zrsea/Documents/Case Study R/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv')
+heartrate_seconds <- read_csv('C:/Users/zrsea/Documents/Case Study R/Fitabase Data 4.12.16-5.12.16/heartrate_seconds_merged.csv')
+MET_minutes <- read.csv('C:/Users/zrsea/Documents/Case Study R/Fitabase Data 4.12.16-5.12.16/minuteMETsNarrow_merged.csv')
+sleepday <- read.csv('C:/Users/zrsea/Documents/Case Study R/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv')
+weightloginfo <-read.csv('C:/Users/zrsea/Documents/Case Study R/Fitabase Data 4.12.16-5.12.16/weightLogInfo_merged.csv')
+```
+
+
+
+## View first few rows of data set 
+
+```{r}
+head(dailyactivity)
+head(heartrate_seconds)
+head(MET_minutes)
+head(sleepday)
+head(weightloginfo)
+```
+
+
+
+## View data type 
+
+```{r}
+str(dailyactivity)
+str(heartrate_seconds)
+str(MET_minutes)
+str(sleepday)
+str(weightloginfo)
+```
+
+
+
+## Description of Data Source 
+
+![](C:/Users/zrsea/Documents/Online Courses/Google Data Analytics Course/Capstone Project/png/Data info 2.png)
+
+
+
+## Clean column names 
+
+```{r, echo=TRUE}
+dailyactivity <- clean_names(dailyactivity)
+heartrate_seconds <- clean_names(heartrate_seconds)
+MET_minutes <- clean_names(MET_minutes)
+sleepday <- clean_names(sleepday)
+weightloginfo <- clean_names(weightloginfo)
+```
+
+
+
+## Amend data type: Standardize date/time column
+
+### Daily Activity
+
+```{r, echo=TRUE, message=FALSE}
+# remove unnecessary spacing in column 
+dailyactivity$activity_date <- trimws(dailyactivity$activity_date)
+# Convert the activity_date column to character
+dailyactivity$activity_date <- as.character(dailyactivity$activity_date)
+# Convert the character dates to Date objects with the specified format
+dailyactivity$activity_date <- as.Date(dailyactivity$activity_date, format = '%m/%d/%Y')
+# Format the Date objects to the desired format ("%d/%m/%Y")
+dailyactivity$activity_date <- format(dailyactivity$activity_date, '%d/%m/%Y')
+```
+
+### Heartrate
+
+```{r, echo=TRUE}
+# Remove unnecessary spacing in column 
+heartrate_seconds$time <- trimws(heartrate_seconds$time)
+# Define a function to parse dates 
+parse_date <- function(date) {
+  if (grepl("AM|PM", date)) {
+    as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p")
+  } else {
+    as.POSIXct(date, format = "%m/%d/%Y %H:%M" )
+  }
+}
+# Apply parse dates to time column 
+heartrate_seconds$time <- lapply(heartrate_seconds$time, parse_date)
+# Format the date_time objects 
+heartrate_seconds$time <- lapply(heartrate_seconds$time, function(x) format(x, "%d/%m/%Y %H:%M"))
+```
+
+### MET
+
+```{r, echo=TRUE}
+# Remove unnecessary spacing in column 
+MET_minutes$activity_minute <- trimws(MET_minutes$activity_minute)
+# Define a function to parse dates 
+parse_date <- function(date) {
+  if (grepl("AM|PM", date)) {
+    as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p")
+  } else {
+    as.POSIXct(date, format = "%m/%d/%Y %H:%M" )
+  }
+}
+# Apply parsed dates to activity minutes column 
+MET_minutes$activity_minute <- lapply(MET_minutes$activity_minute, parse_date)
+# Format date_time objects
+MET_minutes$activity_minute <- lapply(MET_minutes$activity_minute, function(x) format(x, "%d/%m/%Y %H:%M"))
+```
+
+### Sleep 
+
+```{r, echo=TRUE}
+# Remove unnecessary spacing in column 
+sleepday$sleep_day <- trimws(sleepday$sleep_day)
+# Define a function to parse dates 
+parse_date <- function(date) {
+  if (grepl("AM|PM", date)) {
+    as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p")
+  } else {
+    as.POSIXct(date, format = "%m/%d/%Y %H:%M")
+  }
+}
+# Apply parse date to sleep_day column 
+sleepday$sleep_day <- lapply(sleepday$sleep_day, parse_date)
+# Format date_time objects 
+sleepday$sleep_day <- lapply(sleepday$sleep_day, function(x) format (x, "%d/%m/%Y %H:%M"))
+```
+
+### Weightloginfo 
+
+```{r, echo=TRUE}
+# Remove unnecessary spacing in column 
+weightloginfo$date <- trimws(weightloginfo$date)
+# Define parse date function
+parse_date <- function(date) {
+  if (grepl("AM|PM", date)) {
+    as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p")
+  } else {
+    as.POSIXct(date, format = "%m/%d/%Y %H:%M")
+  }
+}
+# Apply parse_date to date column 
+weightloginfo$date <- lapply(weightloginfo$date, parse_date)
+# Format date-time object 
+weightloginfo$date <- lapply(weightloginfo$date, function(x) format(x, "%d/%m/%Y %H:%M"))
+```
+
+
+
+## Check for duplicates
+
+```{r}
+sum(duplicated(dailyactivity))
+sum(duplicated(MET_minutes))
+sum(duplicated(sleepday))
+sum(duplicated(weightloginfo))
+```
+
+
+
+## Remove duplicates
+
+```{r}
+sleepday <- unique(sleepday)
+```
+
+
+
+## Check for empty or NA rows or columns 
+
+```{r}
+sum(is.na(dailyactivity))
+sum(is.na(heartrate_seconds))
+sum(is.na(MET_minutes))
+sum(is.na(sleepday))
+sum(is.na(weightloginfo))
+```
+
+
+
+## Remove NA columns or rows 
+
+```{r}
+weightloginfo <- select(weightloginfo, -5)
+```
+
+
+
+## Number of participants for each category 
+
+```{r}
+n_distinct(dailyactivity$id)
+n_distinct(heartrate_seconds$id)
+n_distinct(MET_minutes$id)
+n_distinct(sleepday$id)
+n_distinct(weightloginfo$id)
+```
+
+
+
+## Analysis 
+
+
+### Breakdown of number of participants for each category 
+
+```{r}
+Participation_Rate <- tibble(
+  Unique_Daily_Activity_Users = n_distinct(dailyactivity$id),
+  Unique_Heartrate_Users = n_distinct(heartrate_seconds$id),
+  Unique_MET_Users = n_distinct(MET_minutes$id),
+  Unique_Sleep_Tracking_Users = n_distinct(sleepday$id),
+  Unique_Weight_Log_Info_Users = n_distinct(weightloginfo$id)
+)  
+Participation_Rate <- t(Participation_Rate) 
+colnames(Participation_Rate) <- c("Count")
+
+Participation_Rate
+```
+
+
+### Daily Activity Tracking
+
+Daily Activity recorded active minutes, active distances traveled, total steps taken, total distance traveled and calories burned.
+
+```{r daily_activity_1, echo=FALSE}
+dailyactivity_tracking <- dailyactivity %>%  
+  group_by(ID = id) %>%  
+  summarise(Number_of_Entries = n(),
+            Average_Total_Steps = round(mean(total_steps)),
+            Average_Total_Distance = round(mean(total_distance),2),
+            Average_Very_Active_Distance = round(mean(very_active_distance),2), 
+            Average_Moderately_Active_Distance = round(mean(moderately_active_distance),2), 
+            Average_Light_Active_Distance = round(mean(light_active_distance),2), 
+            Average_Sedentary_Distance = round(mean(sedentary_active_distance),2), 
+            Average_Very_Active_Mins = round(mean(very_active_minutes),2), 
+            Average_Fairly_Active_Mins = round(mean(fairly_active_minutes),2), 
+            Average_Lightly_Active_Mins = round(mean(lightly_active_minutes),2), 
+            Average_Sedentary_Mins = round(mean(sedentary_minutes),2), 
+            Average_Calories_Count = round(mean(calories),2)
+  )
+
+cols <- c("Average_Total_Steps", "Average_Total_Distance", "Average_Very_Active_Distance",
+          "Average_Moderately_Active_Distance", "Average_Light_Active_Distance", "Average_Sedentary_Distance",
+          "Average_Very_Active_Mins", "Average_Fairly_Active_Mins", "Average_Lightly_Active_Mins",
+          "Average_Sedentary_Mins", "Average_Calories_Count")
+dailyactivity_tracking_summary <- t(sapply(dailyactivity_tracking[cols],
+                                           function(x) round(summary(x, na.rm = TRUE), 2)))
+```
+
+
+#### Averages of different activities of each participants 
+
+```{r dailyactivity_tracking, echo=FALSE}
+dailyactivity_tracking
+```
+
+There is a 100% participation rate for this category with more than half of the participants with daily entries. 
+
+
+#### Summary of Daily Activity data
+
+```{r dailyactivity_tracking_summary, echo=FALSE}
+dailyactivity_tracking_summary
+```
+
+
+#### Active distances and minutes 
+
+```{r Average_active_distances, echo=FALSE, warning=FALSE, message=FALSE}
+intensity_distance_long <- dailyactivity_tracking %>%  
+  select(ID, Average_Very_Active_Distance, Average_Moderately_Active_Distance, 
+  Average_Light_Active_Distance, Average_Sedentary_Distance)
+intensity_distance_long <- tidyr::pivot_longer(intensity_distance_long,
+                                               cols = c(Average_Light_Active_Distance, Average_Very_Active_Distance,   
+                                                        Average_Moderately_Active_Distance, Average_Sedentary_Distance),
+                                               names_to = "Intensity",
+                                               values_to = "Distance_Km")
+ggplot(data = intensity_distance_long) +
+  geom_bar(mapping = aes(x = as.factor(ID), y = Distance_Km, fill = Intensity),
+           stat = "identity",
+           position = "identity",
+           width = 0.5) + 
+  scale_y_continuous(expand = c(0,0), limits = c(0, 10), breaks = seq(0, 10, by = 2)) +
+  labs(title = "Average Active Distances(Light, Moderate, Very Active, Sedentary)", 
+       x = "ID", y = "Distance (Km)") + 
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = 'seashell'),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 8)) 
+
+```
+
+Based on the chart depicted, **most** of the participants primarily participated in **lightly active pursuits**, except for a **minority** who were notably involved in **highly active endeavors**.
+
+```{r Average_active_mins, echo=FALSE, warning=FALSE, message=FALSE }
+intensity_minutes_long <- dailyactivity_tracking %>% 
+  select(ID, Average_Very_Active_Mins, Average_Fairly_Active_Mins, 
+         Average_Lightly_Active_Mins, Average_Sedentary_Mins)
+intensity_minutes_long <- tidyr::pivot_longer(intensity_minutes_long,
+                                              cols = c(Average_Sedentary_Mins, Average_Lightly_Active_Mins,
+                                                       Average_Very_Active_Mins, Average_Fairly_Active_Mins),
+                                              names_to = "Intensity",
+                                              values_to = "Minutes_Mins")
+ggplot(data = intensity_minutes_long) +
+  geom_bar(mapping = aes(x = as.factor(ID), y = Minutes_Mins, fill = Intensity),
+           stat = "identity",
+           position = "identity",
+           width = 0.5) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 1400), breaks = seq(0, 1400, by = 200)) +
+  labs(title = "Average Active Minutes (Sedentary, Lightly, Fairly, Very Active)", 
+       x = "ID", y  = "Minutes (Mins)") +
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = 'seashell'),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 8))
+```
+
+Participants were generally engaged in a **sedentary** lifestyle of **sitting** or **laying down** with **little** to **no exercise**. 
+
+
+#### Relationship between average calories burned, average total steps taken and average total distance traveled
+
+```{r total_steps_vs_calories, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data = dailyactivity_tracking) +
+        geom_point(mapping = aes(x = Average_Calories_Count, y = Average_Total_Steps, color = as.factor(ID)), size = 3) +
+        geom_smooth(mapping = aes(x = Average_Calories_Count, y = Average_Total_Steps ), color = "black", method = "lm", se = FALSE) +
+        scale_y_continuous(expand = c(0,0), limits = c(0, 18000), breaks = seq(0, 18000, by = 3000)) + 
+        scale_x_continuous(expand = c(0,0), limits = c(0, 4000), breaks = seq(0, 4000, by = 1000)) +
+        labs( title = "Average Total Steps Vs Average Calories", 
+              x = "Average Calories (Kcal)", y = "Average Total Steps",
+              color = "ID") +
+        theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+              axis.title = element_text(family = "Helvetica", size = 12),
+              panel.background = element_rect(fill = 'seashell'),
+              legend.title = element_text(hjust = 0.5)) 
+```
+
+Average calories burned and average total steps taken form a positive relationship in which, the greater the number of steps taken, the greater the amount of calories burned. 
+
+```{r total_distance_vs_calories, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data = dailyactivity_tracking) + 
+  geom_point(mapping = aes(x = Average_Calories_Count, y = Average_Total_Distance, color = as.factor(ID)), size = 3) +
+  geom_smooth(mapping = aes(x = Average_Calories_Count, y = Average_Total_Distance), color = "black", method = lm, se = FALSE) + 
+  scale_y_continuous(expand = c(0,0), limits = c(0, 15), breaks = seq(0, 15, by = 5)) +
+  scale_x_continuous(expand = c(0,0), limits = c(0, 4000), breaks = seq(0, 4000, by = 1000)) + 
+  labs(title = "Average Total Distance Vs Average Calories", 
+       x = "Average Calories (Kcal)", y = "Average Total Distance (Km)",
+       color = "ID") +
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = 'seashell'),
+        legend.title = element_text(hjust = 0.5))
+```
+
+Average calories burned and average total distance traveled form a positive relationship. The greater the distance traveled, the greater the amount of calories burned. 
+
+
+### Heart Rate Tracking
+
+Only **42 %** of the participants made use of the Fitbeat to keep track of their heart rates. 
+
+```{r heartrate1, echo=FALSE}
+heartrate <- heartrate_seconds %>% 
+  group_by(ID = id) %>% 
+  summarise(Number_of_Entries = n(), 
+            Average_BPM = round(mean(mean(value),2))
+            )
+
+cols2 <- c("Average_BPM")
+heartrate_summary <- t(sapply(heartrate[cols2],
+                                           function(x) round(summary(x, na.rm = TRUE), 2)))
+```
+
+
+#### Average Heart Rate per minute of each participant 
+
+```{r heartrate2, echo=FALSE}
+heartrate
+```
+
+#### Summary of Heart Rate data  
+
+```{r heartrate_summary, echo=FALSE}
+heartrate_summary
+```
+
+#### Heart Rate per minute  
+
+```{r average_heartrate, echo=FALSE, warning=FALSE, message=FALSE}
+mean_value_HR <- heartrate_summary[4]
+median_value_HR <- heartrate_summary[3]
+ggplot(data = heartrate) +
+  geom_point(mapping = aes(x = as.factor(ID), y = Average_BPM),
+             position = position_dodge(width = 0.5),
+             size = 5,
+             color = "indianred1") +
+  scale_y_continuous(expand = c(0,0), limits = c(0,100)) +
+  labs(title = "Average Heartrate Per Minute of Each User", 
+       x = "ID", y = "Average Heart Rate (BPM)")  +
+  theme(plot.title = element_text(family ="Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = "seashell"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_size(guide = "none") +
+  geom_hline(yintercept = mean_value_HR, linetype = "solid", color = "indianred4") +
+  annotate("text", y = mean_value_HR - 2, x = 1.5, label = paste("Mean:", round(mean_value_HR,2)), vjust = 1, color = "indianred4", title = element_text(family = "Helvetica")) + 
+  geom_hline(yintercept = median_value_HR, linetype = "dashed", color = "cadetblue4") + 
+  annotate("text", y = median_value_HR + 4, x = 1.5, label = paste("Median:", round(median_value_HR,2)), hjust = 0.5, color = "cadetblue4", title = element_text(family = "Helvetica"))
+```
+
+The average Heart Rate per minute of participants ranges from **66 BPM to 94 BPM**. The median heart rate is **81 BPM** while the mean heart rate is **80.07 BPM**. Participants' heart rate are generally within the healthy range. 
+
+
+### MET Tracking 
+
+**All** participants made use of their Fitbits to track their METs. Majority of the participants tracked their MET values on a near-daily basis.
+
+```{r MET1, echo=FALSE, warning =FALSE}
+MET <- MET_minutes %>%  
+  group_by(ID = id) %>% 
+  summarise(Number_of_Entries = n(), 
+            Average_MET = round(mean(me_ts/10),1)
+            )
+
+MET_Converted <- MET_minutes %>%  
+  select(id, 
+         activity_minute, 
+         me_ts) %>%  
+  summarise(ID = id, 
+            Date_Time = activity_minute, 
+            MET_value = me_ts/10)
+
+MET_Intensity <- MET_Converted %>%  
+  group_by(ID) %>% 
+  summarise(Total_Entries = n(),
+            Number_of_Light_Entries = sum(MET_value < 3.0),
+            Number_of_Moderate_Entries = sum(MET_value >= 3.0 & MET_value <= 6.0),
+            Number_of_Vigorous_Entries = sum(MET_value > 6.0)
+            )
+
+cols3 <- c("Average_MET")
+MET_Summary <- t(sapply(MET[cols3],
+                              function(x) round(summary(x, na.rm = TRUE), 1)))
+```
+
+
+#### Average MET of each participant 
+
+```{r MET2, echo=FALSE}
+MET
+```
+
+#### Summary of MET Data 
+
+```{r MET_summary, echo=FALSE}
+MET_Summary
+```
+
+#### MET values
+
+```{r average_MET, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data = MET) + 
+  geom_point(mapping = aes(x = as.factor(ID), y = Average_MET),
+             position = position_dodge(width = 0.5),
+             size = 5, 
+             color = "maroon4") + 
+  geom_segment(mapping = aes(x = as.factor(ID), xend = as.factor(ID), y = 0, yend = Average_MET), 
+               size = 1, 
+               position = position_dodge(width = 0.5),
+               color = "maroon4") +
+  scale_y_continuous(expand = c(0,0), limits = c(0,3)) + 
+  labs(title = "Average MET of Each User", 
+       x = "ID", y = "Average MET (Kcal/Kg/Hr)") + 
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = "seashell"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  scale_size(guide = "none")
+
+
+MET_Intensity_Long <- tidyr::pivot_longer(MET_Intensity, 
+                                          cols = c(Total_Entries, Number_of_Light_Entries, 
+                                                   Number_of_Moderate_Entries, Number_of_Vigorous_Entries
+                                                    ),
+                                          names_to = "Intensity",
+                                          values_to = "Count")
+```
+
+The MET values activities the participants range from **1.1 Kcal/Kg/Hr** to **2 Kcal/kg/Hr**. Participants were mostly engaged in **light intensity acitvities**. This observation is additionally supported by the graph below, which illustrates the **frequency** of **light intensity activities** compared to activities of **other intensities**.
+
+```{r MET_intensity, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data = MET_Intensity_Long) + 
+  geom_bar(mapping = aes(x = as.factor(ID), y = Count, fill = Intensity),
+           stat = "identity",
+           position = "identity",
+           width = 0.5) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 50000)) + 
+  labs(title = "Number of METs Entries (Light, Moderate, Vigorous) Against Total Entries ",
+       x = "ID",
+       y = "Number of Entries") +
+  theme(plot.title = element_text(family = "Helvetica", size = 13, face = "bold", hjust = 0),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = "seashell"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 8)) + 
+  scale_size(guide = "none")
+```
+
+
+### Sleep Tracking
+
+**24** of 33 Participant used Fitbit to track their sleeping habits. 
+
+```{r sleep1, echo=FALSE, warning =FALSE}
+sleeptracking <- sleepday %>% 
+  group_by(ID = id) %>%  
+  summarize(Number_of_Entries = n(),
+            Average_Sleep_Time = round(mean(total_minutes_asleep) / 60, 2),
+            Average_Bed_Time = round(mean(total_time_in_bed) / 60, 2),
+            Average_Idle_Time = round(Average_Bed_Time - Average_Sleep_Time, 2)
+            )
+
+cols4 <- c("Average_Sleep_Time", "Average_Bed_Time", "Average_Idle_Time")
+sleeptracking_summary <- t(sapply(sleeptracking[cols4],
+                        function(x) round(summary(x, na.rm = TRUE), 2)))
+```
+
+
+#### Average duration of sleep, bed and idle time of each participant 
+
+```{r sleep2, echo=FALSE}
+sleeptracking
+```
+
+#### Summary of Sleep Tracking Data 
+
+```{r sleep_summary, echo=FALSE}
+sleeptracking_summary
+```
+
+#### Sleep Tracking hours 
+
+```{r average_sleep, echo=FALSE, warning=FALSE, message=FALSE}
+sleeptracking_long <- sleeptracking %>% 
+  select(ID, Average_Sleep_Time, Average_Bed_Time)
+sleeptracking_long <-tidyr:: pivot_longer(sleeptracking_long,
+                                          cols = c(Average_Bed_Time, Average_Sleep_Time), 
+                                          names_to = "Sleep_Bed_Time",
+                                          values_to = "Duration_Hrs")
+
+mean_value_ST <- sleeptracking_summary[4]
+
+ggplot(data = sleeptracking_long) + 
+  geom_bar(mapping = aes(x = as.factor(ID), y = Duration_Hrs, fill = Sleep_Bed_Time),
+           stat = "identity",
+           position = "identity",
+           width = 0.5) + 
+  scale_y_continuous(expand = c(0,0), limits = c(0, 18), breaks = seq(0, 18, by = 3)) + 
+  labs(title = "Average Hours Asleep & In Bed", fill = NULL,
+       x = "ID", y = "Duration (Hrs)") + 
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size =  12),
+        panel.background = element_rect(fill = "seashell"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) + 
+  geom_hline(yintercept = mean_value_ST, linetype = "solid", color = "indianred" ) +
+  annotate("text", y = mean_value_ST + 1, x = 3, label = paste("Mean:", round(mean_value_ST,2)), vjust = 1)
+```
+
+Participants sleep an average of 5.6 hours each day. Majority of the participants fall asleep within an hour in bed. 
+
+
+### Weight and BMI 
+
+There is minimal participation of **8/33** participants in this category. 
+
+```{r weight_bmi_1, echo=FALSE, warning =FALSE}
+Weight_and_BMI <- weightloginfo %>%  
+  group_by(ID = id) %>% 
+  summarise(Number_of_Entries = n(),
+            Average_Weight_Kg = round(mean(weight_kg),2), 
+            Average_BMI = round(mean(bmi),2),
+            Weight_Status = case_when(
+              Average_BMI < 18.5 ~ "Underweight",
+              Average_BMI >= 18.5 & Average_BMI <= 24.9 ~ "Healthy",
+              Average_BMI >= 25.0 & Average_BMI <= 29.9 ~ "Overweight",
+              Average_BMI > 30 ~ "Obese"
+            ),
+            Manual_Input = ifelse(all(is_manual_report), "Yes", "No")
+  ) 
+
+Count_Weight_and_BMI <- Weight_and_BMI %>%
+  summarise(
+    Count_of_Manual_Input = sum(Manual_Input == "Yes"),
+    Count_of_Non_Manual_Input = sum(Manual_Input == "No"),
+    Count_of_Underweight = sum(Weight_Status == "Underweight"),
+    Count_of_Healthy = sum(Weight_Status == "Healthy" & !is.na(Weight_Status)),  # Add check for missing values
+    Count_of_Overweight = sum(Weight_Status == "Overweight"),
+    Count_of_Obese = sum(Weight_Status == "Obese")
+  ) 
+Count_Weight_and_BMI <- t(Count_Weight_and_BMI)
+colnames(Count_Weight_and_BMI) <- c("Count")
+
+cols5 <- c("Average_Weight_Kg", "Average_BMI")
+Weight_and_BMI_Summary <-t(sapply(Weight_and_BMI[cols5],
+                                  function (x) round(summary(x, na.rm = TRUE),2))
+)
+
+```
+
+
+#### Average BMI and Weight and  of each participant 
+
+```{r weight_bmi_2, echo=FALSE}
+Weight_and_BMI
+```
+
+#### Distribution of BMI weight status 
+
+```{r weight_bmi_count, echo=FALSE}
+Count_Weight_and_BMI
+```
+More than half of the participants fall are categorised as having an unhealthy BMI. 
+
+
+#### Summary of Weight and BMI Data 
+
+```{r weight_and_bmi_summary, echo=FALSE}
+Weight_and_BMI_Summary
+```
+
+#### Weight  
+
+```{r average_weight, echo=FALSE, warning=FALSE, message=FALSE}
+mean_value_Weight <- Weight_and_BMI_Summary["Average_Weight_Kg", "Mean"]
+mean_value_BMI <- Weight_and_BMI_Summary["Average_BMI", "Mean"]
+
+ggplot(data = Weight_and_BMI) + 
+  geom_point(mapping = aes(x = as.factor(ID), y = Average_Weight_Kg, color = Weight_Status),
+             position = position_dodge(width = 0.5),
+             size = 5 
+             ) + 
+  scale_color_manual(values = c("Underweight" = "paleturquoise2", "Healthy" = "palegreen2", "Overweight" = "lightsalmon2", "Obese" = "firebrick4")) + 
+  scale_y_continuous(expand = c(0,0), limits = c(0, 150)) +
+  labs(title = "Average Weight in Kg of Each User", 
+       x = "ID", y = "Average weight (Kg)") +
+  theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+        axis.title = element_text(family = "Helvetica", size = 12),
+        panel.background = element_rect(fill = "seashell"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  scale_size(guide = "none")+
+  geom_hline(yintercept = mean_value_Weight, linetype = "solid", color = "indianred" ) +
+  annotate("text", y = mean_value_Weight + 8, x = 1.5, color = "indianred", label = paste("Mean:", round(mean_value_Weight,2)), vjust = 1)
+```
+
+The average weight of each participants range from **52.6 Kg to 133.5 Kg** with the mean weight being **77.01 Kg**.
+
+#### BMI  
+
+```{r average_bmi, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(data = Weight_and_BMI) +
+  geom_point(mapping = aes(x = as.factor(ID), y = Average_BMI, color = Weight_Status),
+            position = position_dodge(width = 0.5),
+            shape = 17,
+            size = 5) + 
+  scale_color_manual(values = c("Underweight" = "paleturquoise2", "Healthy" = "palegreen2", "Overweight" = "lightsalmon2", "Obese" = "firebrick4")) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 50)) +
+    labs(title = "Average BMI of Each User", 
+         x = "ID", y = "Average BMI (Kg/m2)") +
+    theme(plot.title = element_text(family = "Helvetica", size = 14, face = "bold"),
+          axis.title = element_text(family = "Helvetica", size = 12),
+          panel.background = element_rect(fill = "seashell"),
+          axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+    scale_size(guide = "none") + 
+    geom_hline(yintercept = mean_value_BMI, linetype = "solid", color = "indianred" ) +
+    annotate("text", y = mean_value_BMI + 3, x = 1.5, color = "indianred", label = paste("Mean:", round(mean_value_BMI,2)), vjust = 1)
+
+```
+
+The average BMI of each participant ranges from **21.57 Kg/m2 to 47.54 Kg/m2**. The mean BMI  is **27.99 Kg/m2**. 
+
+## Key Findings 
+
+Usage of Fitbit: 
+
+- Participants generally do not have the habit of wearing Fitbit to sleep.
+- Only a handful of participants use Fitbit to track their weight and BMI.
+- Fitbit is more commonly used to track **MET values** and **daily activities**, which include intensity, calories burned, distance traveled and steps taken.
+
+Trends:
+
+- **Positive** relationship between **calories burned** and **steps/distances traveled**.  
+
+
+Participants' health and lifestyle:
+
+- Participants commonly experienced **insufficient sleep**.
+- Participants with recorded heart rate typically exhibit indicators of a **healthy heart**.
+- Participants predominantly partake in **light-intensity** activities. 
+- Participants spent a significant portion of their days in **sedentary state**.
+- Among those with recorded weight and BMI, over half demonstrate an **unhealthy BMI**.
+
+## Recommendations 
+
+- Conduct a **follow-up survey** to research on the factors behind participants' under utilization of Fitbit for monitoring heart rate, BMI and weight.
+- Enhance **in-app functionalitists** for **personalization** and **interactivity**.
+- Encourage participants to increase their engagement in **higher-intensity activities** by establishing **challenges** within the application.
+- Customize a **limited-access workout regimen tailored** to each user within the application. (Upgrade to premium membership for complete access.)
+
+## Credits
+
+[Data source](https://www.kaggle.com/datasets/arashnic/fitbit)
