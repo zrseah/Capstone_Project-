@@ -1,5 +1,5 @@
 ---
-title: "index"
+title: "Bellabeat Capstone Project"
 author: "zrseah"
 date: "2024-03-08"
 output: html_document
